@@ -5,11 +5,6 @@ pygame.init()
 BACKGROUND_COLOR = (0,0,0)
 def move(ball,blocks,players):
     #this moves the players
-    for player in players:
-        if player['movement'] == MOVE_DOWN:
-            player['y']+=5
-        if player['movement'] == MOVE_UP:
-            player['y']-=5
     rang = math.radians(ball['ang'])
     move_x = int(round(ball['speed']*math.cos(rang)))
     move_y = int(round(ball['speed']*math.sin(rang)))
@@ -20,8 +15,10 @@ def move(ball,blocks,players):
         for block in blocks:
             collided,direction = collide(ball, block) #this is saved so I can use the direction later
             if collided:
-                ball['x'] = int(round(ball['x']-math.copysign(float(move_x)/move_y,move_x)))
-                ball['y'] = int(round(ball['y']-math.copysign(1,move_y)))
+                while collided:
+                    ball['x'] = int(round(ball['x']-math.copysign(float(move_x)/move_y,move_x)))
+                    ball['y'] = int(round(ball['y']-math.copysign(1,move_y)))
+                    collided = collide(ball,block)[0]
                 return id, direction
             id += 1
         ball['x'] += math.copysign(float(move_x)/move_y,move_x)
@@ -52,10 +49,12 @@ def collide(ball,object):
     if 'r' in object:
         return math.sqrt((math.fabs(ball['x']-object['x'])**2) + (math.fabs(ball['y']-object['y'])**2)) <= ball['r']
     else:
-        if near(ball['x']+ball['r'],object['x'],2) or near(ball['x']-ball['r'],object['x']+object['w'],2):
+        if ball['x']<=object['x']<=ball['x']+ball['r'] or ball['x']-ball['r']<=object['x']+object['w']<=ball['x']:
             return object['y'] <= ball['y'] <= object['y'] + object['h'] , 'x'
-        if near(ball['y']+ball['r'],object['y'],2) or near(ball['y']-ball['r'],object['y']+object['h'],2):
+        if ball['y']<=object['y']<=ball['y']+ball['r'] or ball['y']-ball['r']<=object['y']+object['h']<=ball['y']:
             return object['x'] <= ball['x'] <= object['x'] + object['w'] , 'y'
+        if object['x'] <= ball['x'] <= object['x'] + object['w'] and object['y'] <= ball['y'] <= object['y'] + object['h']:
+            return True,"corner"
         return False,"NaN"
 def change_direction(ball,direction):
     '''takes a ball object and also the direction of the hit (x or y)'''
@@ -77,12 +76,11 @@ def main():
     screen = pygame.display.set_mode((600, 600))
     set_screen_size(screen.get_width(), screen.get_height())
     TIMEREVENT = pygame.USEREVENT+1
-    ball = {'x':100,'y':150,'r':10,'color':(56,250,143),'speed':10,'ang':20,'stuck':False}
+    ball = {'x':40,'y':150,'r':10,'color':(56,250,143),'speed':10,'ang':30,'stuck':False}
     balls = [ball]
-    player = {'x':screen_percent(5)[0],'y': 0,'w':25,'h':100,'color':random_color(),'id':"player",'movement':MOVE_STILL}
+    player = {'x':screen_percent(5)[0],'y': 200,'w':25,'h':100,'color':random_color(),'id':"player",'movement':MOVE_STILL}
     blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    #set_screen_size(screen.get_width(),screen.get_height())
-    pygame.time.set_timer(TIMEREVENT,16)
+    pygame.time.set_timer(TIMEREVENT,100)
     running = True
     while running:
         for event in pygame.event.get():
@@ -99,6 +97,11 @@ def main():
             if event.type == TIMEREVENT:
                 for ball in balls:
                     id,direction = move(ball,blocks+walls()+[player],[player]) #this is saved so that the object can removed from the game later
+                    for player in [player]:
+                        if player['movement'] == MOVE_DOWN:
+                            player['y']+=5
+                        if player['movement'] == MOVE_UP:
+                            player['y']-=5
                     if direction!="NaN":
                         print direction
                     if id != -1:
