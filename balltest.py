@@ -3,11 +3,11 @@ import math
 from constants import * #this holds all the variables and their setters
 pygame.init()
 BACKGROUND_COLOR = (0,0,0)
-def move(ball,blocks,players):
+def move(screen,ball,blocks,players):
     #this moves the players
     rang = math.radians(ball['ang'])
-    move_x = int(round(ball['speed']*math.cos(rang)))
-    move_y = int(round(ball['speed']*math.sin(rang)))
+    move_x = round(ball['speed']*math.cos(rang))
+    move_y = round(ball['speed']*math.sin(rang))
     #there are two different loops that seem identical, but they are here so that the movement feels more natural
     counter = abs(move_y)  # I need to keep the value of move_x but i also need to decrease it so here is a counter
     while counter != 0:
@@ -16,16 +16,16 @@ def move(ball,blocks,players):
             collided,direction = collide(ball, block) #this is saved so I can use the direction later
             if collided:
                 while collided:
-                    ball['x'] = int(round(ball['x']-math.copysign(float(move_x)/move_y,move_x)))
-                    ball['y'] = int(round(ball['y']-math.copysign(1,move_y)))
+                    ball['x'] = round(ball['x']-math.copysign(float(move_x)/move_y,move_x))
+                    ball['y'] = round(ball['y']-math.copysign(1,move_y))
                     collided = collide(ball,block)[0]
                 return id, direction
             id += 1
         ball['x'] += math.copysign(float(move_x)/move_y,move_x)
         ball['y'] += math.copysign(1,move_y)
         counter -= 1
-    ball['x'] = int(round(ball['x']))
-    ball['y'] = int(round(ball['y']))
+    ball['x'] = round(ball['x'])
+    ball['y'] = round(ball['y'])
     return -1, "NaN"
 def simple_move(ball,speed = 0,ang = 0):
     '''the difference between this movement method and the 'move' command is that this lacks collision detection'''
@@ -65,6 +65,61 @@ def change_direction(ball,direction):
         ball['ang']*=-1
 def add_block(blocks,x,y,w,h,color):
     blocks.append({'x':x,'y':y,'w':w,'h':h,'color':color,'id':len(blocks)})
+def dictate_angle(screen,player1,player2):
+    #all of these are booleans for button holding
+    first_up = False
+    first_down = False
+    second_up = False
+    second_down = False
+
+    #timer events
+    COUNTDOWNEVENT = pygame.USEREVENT + 1
+    MOVEEVENT = pygame.USEREVENT + 2
+    pygame.time.set_timer(COUNTDOWNEVENT,1000)
+    pygame.time.set_timer(MOVEEVENT,16)
+    countdown = 10
+    angle = 0
+    while countdown>=0:
+        for event in pygame.event.get():
+            if event.type == pygame.QUIT:
+                return "quit"
+            elif event.type == pygame.KEYDOWN:
+                print first_up, first_down
+                if event.key == keys['FIRST_PLAYER_UP']:
+                    first_up = True
+                if event.key == keys['FIRST_PLAYER_DOWN']:
+                    first_down = True
+                if event.key == keys['SECOND_PLAYER_UP']:
+                    second_up = True
+                if event.key == keys['SECOND_PLAYER_DOWN']:
+                    second_down = True
+            elif event.type == pygame.KEYUP:
+                print first_up,first_down
+                if event.key == keys['FIRST_PLAYER_UP']:
+                    first_up = False
+                if event.key == keys['FIRST_PLAYER_DOWN']:
+                    first_down = False
+                if event.key == keys['SECOND_PLAYER_UP']:
+                    second_up = False
+                if event.key == keys['SECOND_PLAYER_DOWN']:
+                    second_down = False
+            elif event.type == COUNTDOWNEVENT:
+                print countdown
+                countdown-=1
+            elif event.type == MOVEEVENT:
+                if first_up:
+                    angle+=1
+                if first_down:
+                    angle-=1
+                #calculate place of the line
+                rang = math.radians(angle)
+                start_pos = surface_percent(50,rect=[player1['x'],player1['y'],player1['w'],player1['h']])
+                end_pos = start_pos[0]+50*math.cos(rang), start_pos[1]+50*math.sin(rang)
+                screen.fill((0,0,0))
+                pygame.draw.rect(screen, player1['color'], (player1['rect']), 0)
+                pygame.draw.line(screen,(255,255,255),start_pos,end_pos,3)
+                pygame.display.flip()
+    return angle
 def draw(screen, balls, blocks):
     screen.fill(BACKGROUND_COLOR)
     for ball in balls:
@@ -76,12 +131,15 @@ def main():
     screen = pygame.display.set_mode((600, 600))
     set_screen_size(screen.get_width(), screen.get_height())
     TIMEREVENT = pygame.USEREVENT+1
-    ball = {'x':40,'y':150,'r':10,'color':(56,250,143),'speed':10,'ang':30,'stuck':False}
-    balls = [ball]
-    player = {'x':screen_percent(5)[0],'y': 200,'w':25,'h':100,'color':random_color(),'id':"player",'movement':MOVE_STILL}
+    player = {'x':surface_percent(5)[0],'y': surface_percent(50)[1]-50,'w':25,'h':100,'color':random_color(),'id':"player",'movement':MOVE_STILL}
+    player['rect'] = [player['x'],player['y'],player['w'],player['h']] #this is for the ball spawn
     blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    pygame.time.set_timer(TIMEREVENT,100)
+    ball = {'x': 50, 'y': 130, 'r': 10, 'color': (56, 250, 143), 'speed': 10, 'ang': dictate_angle(screen, player,player)}
+    balls = [ball]
+    pygame.time.set_timer(TIMEREVENT,16)
     running = True
+    if ball['ang'] == 'quit':
+        running = False
     while running:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
@@ -96,14 +154,12 @@ def main():
                     player['movement'] = MOVE_STILL
             if event.type == TIMEREVENT:
                 for ball in balls:
-                    id,direction = move(ball,blocks+walls()+[player],[player]) #this is saved so that the object can removed from the game later
+                    id,direction = move(screen,ball,blocks+walls()+[player],[player]) #this is saved so that the object can removed from the game later
                     for player in [player]:
                         if player['movement'] == MOVE_DOWN:
                             player['y']+=5
                         if player['movement'] == MOVE_UP:
                             player['y']-=5
-                    if direction!="NaN":
-                        print direction
                     if id != -1:
                         change_direction(ball,direction)
                     draw(screen, balls, blocks+[player])
