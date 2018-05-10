@@ -93,6 +93,8 @@ def dictate_angle(screen,player1,player2):
                     second_up = True
                 if event.key == keys['SECOND_PLAYER_DOWN']:
                     second_down = True
+                if event.key == pygame.K_SPACE:
+                    countdown = 0
             elif event.type == pygame.KEYUP:
                 print first_up,first_down
                 if event.key == keys['FIRST_PLAYER_UP']:
@@ -107,16 +109,16 @@ def dictate_angle(screen,player1,player2):
                 print countdown
                 countdown-=1
             elif event.type == MOVEEVENT:
-                if first_up:
-                    angle+=1
-                if first_down:
+                if first_up and angle>=-60:
                     angle-=1
+                if first_down and angle<=60:
+                    angle+=1
                 #calculate place of the line
                 rang = math.radians(angle)
-                start_pos = surface_percent(50,rect=[player1['x'],player1['y'],player1['w'],player1['h']])
+                start_pos = player1['x']+player1['w'],surface_percent(50,rect=player1['rect'])[1]
                 end_pos = start_pos[0]+50*math.cos(rang), start_pos[1]+50*math.sin(rang)
                 screen.fill((0,0,0))
-                pygame.draw.rect(screen, player1['color'], (player1['rect']), 0)
+                pygame.draw.rect(screen, player1['color'], player1['rect'], 0)
                 pygame.draw.line(screen,(255,255,255),start_pos,end_pos,3)
                 pygame.display.flip()
     return angle
@@ -131,10 +133,12 @@ def main():
     screen = pygame.display.set_mode((600, 600))
     set_screen_size(screen.get_width(), screen.get_height())
     TIMEREVENT = pygame.USEREVENT+1
-    player = {'x':surface_percent(5)[0],'y': surface_percent(50)[1]-50,'w':25,'h':100,'color':random_color(),'id':"player",'movement':MOVE_STILL}
+    player = {'x':surface_percent(5)[0],'y': surface_percent(50)[1]-50,'w':surface_percent(2.09)[0],'h':surface_percent(16.67)[1],'color':random_color(),'id':"player",'movement':MOVE_STILL}
+    print player['w'],player['h']
     player['rect'] = [player['x'],player['y'],player['w'],player['h']] #this is for the ball spawn
     blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    ball = {'x': 50, 'y': 130, 'r': 10, 'color': (56, 250, 143), 'speed': 10, 'ang': dictate_angle(screen, player,player)}
+    ball = {'x': player['x']+player['w']+20, 'y': surface_percent(50,rect = player['rect'])[1], 'r': 10, 'color': (56, 250, 143), 'speed': 10, 'ang': dictate_angle(screen, player,player)}
+    print ball
     balls = [ball]
     pygame.time.set_timer(TIMEREVENT,16)
     running = True
