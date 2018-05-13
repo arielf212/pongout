@@ -84,7 +84,6 @@ def dictate_angle(screen,player1,player2):
             if event.type == pygame.QUIT:
                 return "quit"
             elif event.type == pygame.KEYDOWN:
-                print first_up, first_down
                 if event.key == keys['FIRST_PLAYER_UP']:
                     first_up = True
                 if event.key == keys['FIRST_PLAYER_DOWN']:
@@ -106,7 +105,6 @@ def dictate_angle(screen,player1,player2):
                 if event.key == keys['SECOND_PLAYER_DOWN']:
                     second_down = False
             elif event.type == COUNTDOWNEVENT:
-                print countdown
                 countdown-=1
             elif event.type == MOVEEVENT:
                 if first_up and angle>=-60:
@@ -115,7 +113,7 @@ def dictate_angle(screen,player1,player2):
                     angle+=1
                 #calculate place of the line
                 rang = math.radians(angle)
-                start_pos = player1['x']+player1['w'],surface_percent(50,rect=player1['rect'])[1]
+                start_pos = player1['x']+player1['w'],player1['y']+surface_percent(50,dimensions=(player1['w'],player1['h']))[1]
                 end_pos = start_pos[0]+50*math.cos(rang), start_pos[1]+50*math.sin(rang)
                 screen.fill((0,0,0))
                 pygame.draw.rect(screen, player1['color'], player1['rect'], 0)
@@ -133,12 +131,10 @@ def main():
     screen = pygame.display.set_mode((600, 600))
     set_screen_size(screen.get_width(), screen.get_height())
     TIMEREVENT = pygame.USEREVENT+1
-    player = {'x':surface_percent(5)[0],'y': surface_percent(50)[1]-50,'w':surface_percent(2.09)[0],'h':surface_percent(16.67)[1],'color':random_color(),'id':"player",'movement':MOVE_STILL}
-    print player['w'],player['h']
-    player['rect'] = [player['x'],player['y'],player['w'],player['h']] #this is for the ball spawn
+    player_left,player_right = create_players()
     blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    ball = {'x': player['x']+player['w']+20, 'y': surface_percent(50,rect = player['rect'])[1], 'r': 10, 'color': (56, 250, 143), 'speed': 10, 'ang': dictate_angle(screen, player,player)}
-    print ball
+    ball = {'x': player_left['x']+player_left['w']+20, 'y': surface_percent(50,dimensions= (player_left['w'],player_left['h']))[1], 'r': round(surface_percent(8,dimensions = (player_left['w'],player_left['h'])[1]/2),'color': (56, 250, 143), 'ang': dictate_angle(screen, player_left,player_left)}
+    ball['speed'] = ball['r']*2
     balls = [ball]
     pygame.time.set_timer(TIMEREVENT,16)
     running = True
@@ -150,20 +146,20 @@ def main():
                 running = False
             if event.type == pygame.KEYDOWN:
                 if event.key == pygame.K_w:
-                    player['movement'] = MOVE_UP
+                    player_left['movement'] = MOVE_UP
                 elif event.key == pygame.K_s:
-                    player['movement'] = MOVE_DOWN
+                    player_left['movement'] = MOVE_DOWN
             if event.type == pygame.KEYUP:
                 if event.key == pygame.K_w or event.key == pygame.K_s:
-                    player['movement'] = MOVE_STILL
+                    player_left['movement'] = MOVE_STILL
             if event.type == TIMEREVENT:
                 for ball in balls:
-                    id,direction = move(screen,ball,blocks+walls()+[player],[player]) #this is saved so that the object can removed from the game later
-                    for player in [player]:
-                        if player['movement'] == MOVE_DOWN:
-                            player['y']+=5
+                    id,direction = move(screen,ball,blocks+walls()+[player_left],[player_left]) #this is saved so that the object can removed from the game later
+                    for player in [player_left]:
+                        if player_left['movement'] == MOVE_DOWN:
+                            player_left['y']+=5
                         if player['movement'] == MOVE_UP:
-                            player['y']-=5
+                            player_left['y']-=5
                     if id != -1:
                         change_direction(ball,direction)
                     draw(screen, balls, blocks+[player])

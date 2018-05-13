@@ -11,28 +11,25 @@ keys = {'FIRST_PLAYER_UP':pygame.K_w,'FIRST_PLAYER_DOWN':pygame.K_s,'SECOND_PLAY
 def set_screen_size(width,height):
     screen_size[0] = width
     screen_size[1] = height
-def surface_percent(percent,from_end=False,rect = None):
+def surface_percent(percent,from_end=False,dimensions = None):
     '''takes a percent of the screen and return the amount of pixels. if from_end = True, the it return the amount of pixels from end
        is also able to take an extra parameter called rect. rect is a list/tuple that looks like this: [x,y,w,h]. it will return the amount of pixels from this rect'''
-    if rect is None:
-        rect = 0,0,screen_size[0],screen_size[1]
+    if dimensions is None:
+        dimensions = screen_size
     if from_end:
         backwards = 100-percent #calcualtes the percent from end (i.e. 90% becomes 10%)
-        return rect[0]+(float(rect[2]*backwards)/100) , rect[1]+(float(rect[3]*backwards)/100)
+        return float(dimensions[0]*backwards)/100 , float(dimensions[1]*backwards)/100
     else:
-        return rect[0]+(float(rect[2]*percent)/100) , rect[1]+(float(rect[3]*percent)/100)
+        return float(dimensions[0]*percent)/100 , float(dimensions[1]*percent)/100
 def create_players():
-    #left player
-    left_h = surface_percent(16.67) #the percent doesnt mean anything, I just like how it looks.
-    left_w = left_h/4 #this makes the player proportions fell good
-    left_x = surface_percent(5)[0]
-    left_y = surface_percent(50)[1] - (left_h/2) #this is so that the player starts in the middle of the screen
-
-    #right player
-    right_h = surface_percent(16.67,from_end=False)  # the percent doesnt mean anything, I just like how it looks.
-    right_w = left_h / 4  # this makes the player proportions fell good
-    right_x = surface_percent(5)[0]
-    right_y = surface_percent(50)[1] - (left_h / 2)  # this is so that the player starts in the middle of the screen
+    players = []
+    for x in range(2):
+        h = surface_percent(16.67,from_end=bool(x))[1] #the percent doesnt mean anything, I just like how it looks.
+        w = h/4 #this makes the player proportions fell good
+        x = surface_percent(5)[0]
+        y = surface_percent(50)[1] - (h/2) #this is so that the player starts in the middle of the screen
+        players.append({'x':x,'y':y,'w':w,'h':h,'color':random_color(),'rect':[x,y,w,h],'movement':MOVE_STILL})
+    return players
 def walls():
     '''this return a list of dictionaries that represent the bounds of the game'''
     up = {'x': 0,'y': -50,'w': screen_size[0] ,'h':50,'color': colors['background'],'id':'up'}
