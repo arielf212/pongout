@@ -3,7 +3,7 @@ import math
 from constants import * #this holds all the variables and their setters
 pygame.init()
 BACKGROUND_COLOR = (0,0,0)
-def move(screen,ball,blocks,players):
+def move(screen,ball,blocks):
     #this moves the players
     rang = math.radians(ball['ang'])
     move_x = round(ball['speed']*math.cos(rang))
@@ -36,10 +36,6 @@ def simple_move(ball,speed = 0,ang = 0):
     rang = math.radians(ang)
     ball['x'] += round(speed*math.cos(rang))
     ball['y'] += round(speed*math.sin(rang))
-def round(num):
-    if num%1 >= 0.5:
-        return int(math.ceil(num))
-    return int(math.floor(num))
 def near(num1,num2,difference):
     '''checks if the first number is near the second number by the number provided.
         for example: near(2,4,1) returns True because: (2<=4<=2+1 or 2-1<=4<=2) equals (False or True) equals True'''
@@ -65,12 +61,12 @@ def change_direction(ball,direction):
         ball['ang']*=-1
 def add_block(blocks,x,y,w,h,color):
     blocks.append({'x':x,'y':y,'w':w,'h':h,'color':color,'id':len(blocks)})
-def dictate_angle(screen,player1,player2):
+def dictate_angle(screen,player_left,player_right):
     #all of these are booleans for button holding
-    first_up = False
-    first_down = False
-    second_up = False
-    second_down = False
+    left_up = False
+    left_down = False
+    right_up = False
+    right_down = False
 
     #timer events
     COUNTDOWNEVENT = pygame.USEREVENT + 1
@@ -78,48 +74,53 @@ def dictate_angle(screen,player1,player2):
     pygame.time.set_timer(COUNTDOWNEVENT,1000)
     pygame.time.set_timer(MOVEEVENT,16)
     countdown = 10
-    angle = 0
+    angle_left = 0
+    angle_right = 0
     while countdown>=0:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
                 return "quit"
             elif event.type == pygame.KEYDOWN:
-                if event.key == keys['FIRST_PLAYER_UP']:
-                    first_up = True
-                if event.key == keys['FIRST_PLAYER_DOWN']:
-                    first_down = True
-                if event.key == keys['SECOND_PLAYER_UP']:
-                    second_up = True
-                if event.key == keys['SECOND_PLAYER_DOWN']:
-                    second_down = True
+                if event.key == keys['LEFT_PLAYER_UP']:
+                    left_up = True
+                if event.key == keys['LEFT_PLAYER_DOWN']:
+                    left_down = True
+                if event.key == keys['RIGHT_PLAYER_UP']:
+                    right_up = True
+                if event.key == keys['RIGHT_PLAYER_DOWN']:
+                    right_down = True
                 if event.key == pygame.K_SPACE:
                     countdown = 0
             elif event.type == pygame.KEYUP:
-                print first_up,first_down
-                if event.key == keys['FIRST_PLAYER_UP']:
-                    first_up = False
-                if event.key == keys['FIRST_PLAYER_DOWN']:
-                    first_down = False
-                if event.key == keys['SECOND_PLAYER_UP']:
-                    second_up = False
-                if event.key == keys['SECOND_PLAYER_DOWN']:
-                    second_down = False
+                if event.key == keys['LEFT_PLAYER_UP']:
+                    left_up = False
+                if event.key == keys['LEFT_PLAYER_DOWN']:
+                    left_down = False
+                if event.key == keys['RIGHT_PLAYER_UP']:
+                    right_up = False
+                if event.key == keys['RIGHT_PLAYER_DOWN']:
+                    right_down = False
             elif event.type == COUNTDOWNEVENT:
                 countdown-=1
             elif event.type == MOVEEVENT:
-                if first_up and angle>=-60:
-                    angle-=1
-                if first_down and angle<=60:
-                    angle+=1
-                #calculate place of the line
-                rang = math.radians(angle)
-                start_pos = player1['x']+player1['w'],player1['y']+surface_percent(50,rect=player1['rect'])[1]
-                end_pos = start_pos[0]+50*math.cos(rang), start_pos[1]+50*math.sin(rang)
+                if left_up and angle_left>=-60:
+                    angle_left-=1
+                elif left_down and angle_left<=60:
+                    angle_left+=1
+                elif right_up and angle_right>=-60:
+                    angle_right-=1
+                elif right_down and angle_right<=60:
+                    angle_right+=1
                 screen.fill((0,0,0))
-                pygame.draw.rect(screen, player1['color'], player1['rect'], 0)
-                pygame.draw.line(screen,(255,255,255),start_pos,end_pos,3)
+                for x in range(2): # 2 players, 2 angles
+                    player = [player_left,player_right][x]
+                    angle = [angle_left,angle_right][x]
+                    line_len = 50-(100*x) #left player needs the line to got left so the len is 50 and the right player needs the line to go right so the len is -50
+                    angle_line = create_angle_line(player,angle,line_len = line_len) # [(x,y),(x,y)]
+                    pygame.draw.rect(screen, player['color'], player['rect'], 0)
+                    pygame.draw.line(screen,(255,255,255),angle_line[0],angle_line[1],3)
                 pygame.display.flip()
-    return angle
+    return {'left':angle_left,'right':angle_right}
 def draw(screen, balls, blocks):
     screen.fill(BACKGROUND_COLOR)
     for ball in balls:
@@ -132,37 +133,39 @@ def main():
     set_screen_size(screen.get_width(), screen.get_height())
     TIMEREVENT = pygame.USEREVENT+1
     player_left,player_right = create_players()
+    players = {}
     blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    ang = dictate_angle(screen,player_left,player_right)
-    ball_left = create_left_ball(player_left,ang)
-    ball_right = create_right_ball(player_right,30)
-    balls = [ball_left]
+    angles = dictate_angle(screen,player_left,player_right) # dict {'left','right'}
+    ball_left = create_left_ball(player_left,angles['left'])
+    ball_right = create_right_ball(player_right,angles['right'])
+    balls = [ball_left,ball_right]
     pygame.time.set_timer(TIMEREVENT,16)
     running = True
     if ball_left['ang'] == 'quit' or ball_right['ang'] == 'quit':
         running = False
     while running:
         for event in pygame.event.get():
-            if event.type == pygame.QUIT:
-                running = False
-            if event.type == pygame.KEYDOWN:
-                if event.key == pygame.K_w:
-                    player_left['movement'] = MOVE_UP
-                elif event.key == pygame.K_s:
-                    player_left['movement'] = MOVE_DOWN
-            if event.type == pygame.KEYUP:
-                if event.key == pygame.K_w or event.key == pygame.K_s:
-                    player_left['movement'] = MOVE_STILL
+            for player in [player_left,player_right]:
+                if event.type == pygame.KEYDOWN:
+                    if event.key == keys[player['side']+'_PLAYER_UP']:
+                        player['movement'] = MOVE_UP
+                    elif event.key == keys[player['side']+'_PLAYER_DOWN']:
+                        player['movement'] = MOVE_DOWN
+                if event.type == pygame.KEYUP:
+                    if event.key == keys[player['side']+'_PLAYER_UP'] or event.key == keys[player['side']+'_PLAYER_DOWN']:
+                        player['movement'] = MOVE_STILL
             if event.type == TIMEREVENT:
                 for ball in balls:
-                    id,direction = move(screen,ball,blocks+walls()+[player_left],[player_left]) #this is saved so that the object can removed from the game later
-                    for player in [player_left]:
-                        if player_left['movement'] == MOVE_DOWN:
-                            player_left['y']+=5
+                    id,direction = move(screen,ball,blocks+walls()+[player_left,player_right]) #this is saved so that the object can removed from the game later
+                    for player in [player_left,player_right]:
+                        if player['movement'] == MOVE_DOWN:
+                            player['y']+=5
                         if player['movement'] == MOVE_UP:
-                            player_left['y']-=5
+                            player['y']-=5
                     if id != -1:
                         change_direction(ball,direction)
-                    draw(screen, balls, blocks+[player])
+                    draw(screen, balls, blocks+[player_left,player_right])
+            if event.type == pygame.QUIT:
+                running = False
     pygame.quit()
 main()
