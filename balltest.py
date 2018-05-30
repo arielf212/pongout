@@ -3,27 +3,26 @@ import math
 from constants import * #this holds all the variables and their setters
 pygame.init()
 BACKGROUND_COLOR = (0,0,0)
-def move(screen,ball,blocks):
+def move(ball,blocks):
     #this moves the players
     rang = math.radians(ball['ang'])
     move_x = round(ball['speed']*math.cos(rang))
     move_y = round(ball['speed']*math.sin(rang))
+    speed = ball['speed']
     #there are two different loops that seem identical, but they are here so that the movement feels more natural
-    counter = abs(move_y)  # I need to keep the value of move_x but i also need to decrease it so here is a counter
-    while counter != 0:
+    for x in range(abs(speed)):
         id = 0  # this counts the place of the object in the array
         for block in blocks:
             collided,direction = collide(ball, block) #this is saved so I can use the direction later
             if collided:
                 while collided:
-                    ball['x'] = round(ball['x']-math.copysign(float(move_x)/move_y,move_x))
-                    ball['y'] = round(ball['y']-math.copysign(1,move_y))
+                    ball['x'] = round(ball['x']-math.copysign(float(move_x)/speed,move_x))
+                    ball['y'] = round(ball['y']-math.copysign(float(move_y)/speed,move_y))
                     collided = collide(ball,block)[0]
                 return id, direction
             id += 1
-        ball['x'] += math.copysign(float(move_x)/move_y,move_x)
-        ball['y'] += math.copysign(1,move_y)
-        counter -= 1
+        ball['x'] += math.copysign(float(move_x)/speed,move_x)
+        ball['y'] += math.copysign(float(move_y)/speed,move_y)
     ball['x'] = round(ball['x'])
     ball['y'] = round(ball['y'])
     return -1, "NaN"
@@ -105,12 +104,12 @@ def dictate_angle(screen,player_left,player_right):
             elif event.type == MOVEEVENT:
                 if left_up and angle_left>=-60:
                     angle_left-=1
-                elif left_down and angle_left<=60:
+                if left_down and angle_left<=60:
                     angle_left+=1
-                elif right_up and angle_right>=-60:
-                    angle_right-=1
-                elif right_down and angle_right<=60:
+                if right_up and angle_right<=60:
                     angle_right+=1
+                if right_down and angle_right>=-servers 60:
+                    angle_right-=1
                 screen.fill((0,0,0))
                 for x in range(2): # 2 players, 2 angles
                     player = [player_left,player_right][x]
@@ -156,7 +155,7 @@ def main():
                         player['movement'] = MOVE_STILL
             if event.type == TIMEREVENT:
                 for ball in balls:
-                    id,direction = move(screen,ball,blocks+walls()+[player_left,player_right]) #this is saved so that the object can removed from the game later
+                    id,direction = move(ball,blocks+walls()+[player_left,player_right]) #this is saved so that the object can removed from the game later
                     for player in [player_left,player_right]:
                         if player['movement'] == MOVE_DOWN:
                             player['y']+=5

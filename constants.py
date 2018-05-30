@@ -28,7 +28,8 @@ def round(num):
     if num%1 >= 0.5:
         return int(math.ceil(num))
     return int(math.floor(num))
-def create_players():
+def create_players(get_as_dict = False):
+    '''creates the players. either return them as an array, or as a dict that looks like {'left','right'} if get_as_dect equals to True'''
     players = []
     side = ['LEFT','RIGHT'] #this will be used inside the main event loop to determine the buttons the palayer will be using (player['side'] + '_PLAYER_DOWN)
     for player in range(2):
@@ -39,12 +40,13 @@ def create_players():
             x-=w #this is here to make the players look symetrical.
         y = round(surface_percent(50)[1] - (h/2)) #this is so that the player starts in the middle of the screen
         players.append({'x':x,'y':y,'w':w,'h':h,'color':random_color(),'rect':[x,y,w,h],'movement':MOVE_STILL,'side':side[player]})
-    print players
+    if get_as_dict:
+        return {'left':players[0],'right':players[1]}
     return players
 def create_left_ball(player_left,angle):
     x = player_left['x']+player_left['w']+20
     y = round(surface_percent(50,from_start_of_surface=True,rect=player_left['rect'])[1])
-    return {'x':x, 'y':y, 'r':10, 'color' : random_color(), 'speed' : 10*1.5, 'ang': angle} #change later so that speed is 'r'*2
+    return {'x':x, 'y':y, 'r':10, 'color' : random_color(), 'speed' : 10*2, 'ang': angle} #change later so that speed is 'r'*2
 def create_right_ball(player_right,angle):
     x = player_right['x']-20
     y = round(surface_percent(50,from_start_of_surface=True,rect=player_right['rect'])[1])
