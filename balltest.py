@@ -1,44 +1,30 @@
 import pygame
 import math
 from constants import * #this holds all the variables and their setters
+
 pygame.init()
 BACKGROUND_COLOR = (0,0,0)
-def move(ball,blocks):
-    #this moves the players
-    rang = math.radians(ball['ang'])
-    move_x = round(ball['speed']*math.cos(rang))
-    move_y = round(ball['speed']*math.sin(rang))
-    speed = ball['speed']
-    #there are two different loops that seem identical, but they are here so that the movement feels more natural
-    for x in range(abs(speed)):
-        id = 0  # this counts the place of the object in the array
-        for block in blocks:
-            collided,direction = collide(ball, block) #this is saved so I can use the direction later
+
+def move(balls , blocks):
+    destroy = [] # stores the placement of the blocks that the balls collided withz
+    for ball in balls:
+        ball['x'] += ball['move_x']
+        ball['y'] += ball['move_y']
+        for x in range(len(blocks)):
+            collided , direction = collide(ball , blocks[x])
             if collided:
-                while collided:
-                    ball['x'] = round(ball['x']-math.copysign(float(move_x)/speed,move_x))
-                    ball['y'] = round(ball['y']-math.copysign(float(move_y)/speed,move_y))
-                    collided = collide(ball,block)[0]
-                return id, direction
-            id += 1
-        ball['x'] += math.copysign(float(move_x)/speed,move_x)
-        ball['y'] += math.copysign(float(move_y)/speed,move_y)
-    ball['x'] = round(ball['x'])
-    ball['y'] = round(ball['y'])
-    return -1, "NaN"
-def simple_move(ball,speed = 0,ang = 0):
-    '''the difference between this movement method and the 'move' command is that this lacks collision detection'''
-    if speed==0:
-        speed = ball['speed']
-    if ang==0:
-        ang = ball['ang']
-    rang = math.radians(ang)
-    ball['x'] += round(speed*math.cos(rang))
-    ball['y'] += round(speed*math.sin(rang))
+                ball['x'] -= ball['move_x']
+                ball['y'] -= ball['move_y']
+                change_direction(ball , direction)
+                destroy.append(x)
+                break
+    return destroy
+
 def near(num1,num2,difference):
     '''checks if the first number is near the second number by the number provided.
         for example: near(2,4,1) returns True because: (2<=4<=2+1 or 2-1<=4<=2) equals (False or True) equals True'''
     return num1<=num2<=num1+difference or num1-difference<=num2<=num1
+
 def collide(ball,object):
     '''returns a tuple containing a boolean (did the ball hit something?) and a string that represents direction of hit (x or y) '''
     if 'r' in object:
@@ -51,6 +37,7 @@ def collide(ball,object):
         if object['x'] <= ball['x'] <= object['x'] + object['w'] and object['y'] <= ball['y'] <= object['y'] + object['h']:
             return True,"corner"
         return False,"NaN"
+
 def change_direction(ball,direction):
     '''takes a ball object and also the direction of the hit (x or y)'''
     if direction == 'x':
@@ -58,8 +45,11 @@ def change_direction(ball,direction):
         ball['ang']*=-1
     else:
         ball['ang']*=-1
-def add_block(blocks,x,y,w,h,color):
-    blocks.append({'x':x,'y':y,'w':w,'h':h,'color':color,'id':len(blocks)})
+    rang = math.radians(ball['ang'])
+    # recreate move_x and move_y with new values
+    ball['move_x'] = ball['speed'] * math.cos(rang)
+    ball['move_y'] = ball['speed'] * math.sin(rang)
+
 def dictate_angle(screen,player_left,player_right):
     #all of these are booleans for button holding
     left_up = False
@@ -78,7 +68,7 @@ def dictate_angle(screen,player_left,player_right):
     while countdown>=0:
         for event in pygame.event.get():
             if event.type == pygame.QUIT:
-                return "quit"
+                return {'left':"quit",'right':'quit'} # the return has to be in this format or else it crashes
             elif event.type == pygame.KEYDOWN:
                 if event.key == keys['LEFT_PLAYER_UP']:
                     left_up = True
@@ -108,63 +98,125 @@ def dictate_angle(screen,player_left,player_right):
                     angle_left+=1
                 if right_up and angle_right<=60:
                     angle_right+=1
-                if right_down and angle_right>=-servers 60:
+                if right_down and angle_right>=-60:
                     angle_right-=1
                 screen.fill((0,0,0))
                 for x in range(2): # 2 players, 2 angles
                     player = [player_left,player_right][x]
                     angle = [angle_left,angle_right][x]
-                    line_len = 50-(100*x) #left player needs the line to got left so the len is 50 and the right player needs the line to go right so the len is -50
-                    angle_line = create_angle_line(player,angle,line_len = line_len) # [(x,y),(x,y)]
-                    pygame.draw.rect(screen, player['color'], player['rect'], 0)
+                    direction = ['RIGHT','LEFT'][x]
+                    angle_line = create_angle_line(player,angle,line_direction=direction) # [(x,y),(x,y)]
+                    rect = [player['x'] , player['y'] , player['w'] , player['h']]
+                    pygame.draw.rect(screen, player['color'], rect, 0)
                     pygame.draw.line(screen,(255,255,255),angle_line[0],angle_line[1],3)
                 pygame.display.flip()
     return {'left':angle_left,'right':angle_right}
+
 def draw(screen, balls, blocks):
     screen.fill(BACKGROUND_COLOR)
     for ball in balls:
-        pygame.draw.circle(screen,ball['color'],(ball['x'],ball['y']),ball['r'],0)
+        if ball['x'] == CHOOSE_ANGLE:
+            direction = 'RIGHT' if ball['side'] =='LEFT' else 'LEFT'
+            angle_line = create_angle_line(ball['player'] , ball['ang'] , line_direction=direction)
+            pygame.draw.line(screen , (255,255,255) , angle_line[0] , angle_line[1] , 3)
+        else:
+            pygame.draw.circle(screen,ball['color'],(round(ball['x']),round(ball['y'])),ball['r'],0)
     for obj in blocks:
-        pygame.draw.rect(screen,obj['color'],(obj['x'],obj['y'],obj['w'],obj['h']),0)
+        pygame.draw.rect(screen,obj['color'],(round(obj['x']),round(obj['y']),obj['w'],obj['h']),0)
     pygame.display.flip()
-def main():
-    screen = pygame.display.set_mode((600, 600))
-    set_screen_size(screen.get_width(), screen.get_height())
-    TIMEREVENT = pygame.USEREVENT+1
-    player_left,player_right = create_players()
-    players = {}
-    blocks = [] #this holds the data of all the blocks (not including the walls). each blocks place in the list coressponds to its ID.
-    angles = dictate_angle(screen,player_left,player_right) # dict {'left','right'}
-    ball_left = create_left_ball(player_left,angles['left'])
-    ball_right = create_right_ball(player_right,angles['right'])
-    balls = [ball_left,ball_right]
-    pygame.time.set_timer(TIMEREVENT,16)
+def main(score_left = 0 , score_right = 0):
+    #variables
+    blocks = [] # this holds the data of all the blocks (not including the walls or players). each blocks place in the list corresponds to its ID
     running = True
-    if ball_left['ang'] == 'quit' or ball_right['ang'] == 'quit':
+    #screen
+    screen = pygame.display.set_mode((1980, 920)) # creating a screen
+    set_screen_size(screen.get_width(), screen.get_height()) #setting the screen size
+    #players and balls
+    player_left,player_right = create_players()
+    players = [player_left, player_right]
+    angles = dictate_angle(screen,player_left,player_right) # dict {'left','right'}
+    if angles['left'] == 'quit' or angles['right'] == 'quit':
         running = False
+    else:
+        ball_left = create_left_ball(player_left,angles['left'])
+        ball_right = create_right_ball(player_right,angles['right'])
+        player_left['ball'] = ball_left # sometimes I have to use the balls in a player-only function and vise versa
+        player_right['ball'] = ball_right # so I am just giving the players and balls pointers to ach other
+        balls = [ball_left,ball_right]
+    #timers
+    TIMEREVENT = pygame.USEREVENT + 1
+    pygame.time.set_timer(TIMEREVENT,16)
     while running:
         for event in pygame.event.get():
-            for player in [player_left,player_right]:
+            for player in players:
                 if event.type == pygame.KEYDOWN:
                     if event.key == keys[player['side']+'_PLAYER_UP']:
                         player['movement'] = MOVE_UP
-                    elif event.key == keys[player['side']+'_PLAYER_DOWN']:
+                    if event.key == keys[player['side']+'_PLAYER_DOWN']:
                         player['movement'] = MOVE_DOWN
+                    if event.key == keys[player['side']+'_BLOCK_SPAWN']:
+                        ball = player['ball']
+                        if ball['x'] == CHOOSE_ANGLE:
+                            if ball['side'] == 'LEFT':
+                                ball_left = create_left_ball(player , ball['ang']) # we create a new ball since the old one got destroyed
+                                player['ball']  = ball_left # we add the new ball to the player
+                                balls.append(ball_left) # we add the new ball back to the "balls" list
+                            else:
+                                ball_right = create_right_ball(player , ball['ang'])
+                                player['ball'] = ball_right
+                                balls.append(ball_right)
+                        else:
+                            blocks.append({'x' : ball['x'] ,'y' : ball['y'] ,'w' : player['w'] ,'h' : player['h'] ,'color' : random_color()}) #creates block
+                            ball['x'] = CHOOSE_ANGLE # the ball enters the same state as in the "dictate_angle" function.
+                            ball['ang'] = 0  # resets angle
+                            balls.remove(ball)  # removes the ball from the "balls" list
                 if event.type == pygame.KEYUP:
                     if event.key == keys[player['side']+'_PLAYER_UP'] or event.key == keys[player['side']+'_PLAYER_DOWN']:
                         player['movement'] = MOVE_STILL
             if event.type == TIMEREVENT:
-                for ball in balls:
-                    id,direction = move(ball,blocks+walls()+[player_left,player_right]) #this is saved so that the object can removed from the game later
-                    for player in [player_left,player_right]:
-                        if player['movement'] == MOVE_DOWN:
-                            player['y']+=5
-                        if player['movement'] == MOVE_UP:
-                            player['y']-=5
-                    if id != -1:
-                        change_direction(ball,direction)
-                    draw(screen, balls, blocks+[player_left,player_right])
+                for player in players:
+                    if player['ball']['x'] == CHOOSE_ANGLE:
+                        if player['side'] == 'LEFT':
+                            player['ball']['ang'] = min(60 , max(-60 ,player['ball']['ang']+player['movement'])) # angle cant be more then 60 or less then -60
+                        else:
+                            player['ball']['ang'] = min(60, max(-60, player['ball']['ang']-player['movement']))
+                    else:
+                        player['y'] += 5 * player['movement'] # since the movements states are either -1 , 0 or 1 so MOVE_UP will make him move 5 up for example
+                        for ball in balls:
+                            if collide(ball , player)[0] or player['y'] < 5 or near(player['y']+player['h'] , screen_size[1] , 2):
+                                player['y'] -= 5 * player['movement']
+                                break
+                destroy = move(balls , blocks+walls()+players) # this is the id of the blocks that I need to destroy
+                for id in destroy:
+                    if id < len(blocks): # to not get array out of bounds error since I am also checking collision with players and walls
+                        del blocks[id] # removes the blocks that got hit
+                    elif id-len(blocks) == LEFT: # walls come after blocks so we can check what is the wall by subtracting the id from the amount of blocks there is
+                        if abs(ball_left['x']-walls()[LEFT]['x']) <= abs(ball_right['x']-walls()[LEFT]['x']): # we check which ball is the closest to the wall
+                            print 'wtf'
+                            ball_left['x'] = CHOOSE_ANGLE  # the ball enters the same state as in the "dictate_angle" function.
+                            ball_left['ang'] = 0  # resets angle
+                            balls.remove(ball_left)  # removes the ball from the "balls" list
+                        else:
+                            return (score_left,score_right) # we start the game again with a different score
+                    elif id-len(blocks) == RIGHT:
+                        if abs(ball_right['x'] - walls()[RIGHT]['x']) <= abs(ball_left['x'] - walls()[RIGHT]['x']):
+                            ball_right['x'] = CHOOSE_ANGLE
+                            ball_right['ang'] = 0
+                            balls.remove(ball_right)
+                        else:
+                            return (score_left,score_right)
+
+                draw(screen , [ball_left,ball_right] , players + blocks) # this function doesnt use the "balls" list since I want it
+                pygame.display.flip()                                    # to use balls that don't exist anymore and those are deleted from the list
             if event.type == pygame.QUIT:
                 running = False
-    pygame.quit()
-main()
+    return 'quit'
+score = (0,0) #left_score ,right_score
+is_quit = False
+while score[0] < 10 or score[1] < 10:
+    score = main(score_left=score[0],score_right=score[1])
+    if score == 'quit':
+        is_quit = True
+        break
+if is_quit:
+    print 'yay'
