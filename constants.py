@@ -8,7 +8,8 @@ MOVE_STILL = 0 #this is for checking if the player is not moving
 MOVE_UP = -1 #this is for movement up
 MOVE_DOWN = 1 #and this one is down
 keys = {'LEFT_PLAYER_UP':pygame.K_w,'LEFT_PLAYER_DOWN':pygame.K_s,'LEFT_BLOCK_SPAWN':pygame.K_SPACE,
-        'RIGHT_PLAYER_UP':pygame.K_UP,'RIGHT_PLAYER_DOWN':pygame.K_DOWN,'RIGHT_BLOCK_SPAWN':pygame.K_RETURN}
+        'RIGHT_PLAYER_UP':pygame.K_UP,'RIGHT_PLAYER_DOWN':pygame.K_DOWN,'RIGHT_BLOCK_SPAWN':pygame.K_RETURN,
+        'QUIT' : pygame.K_ESCAPE}
 UP = 0 #these are ofr taking specificx wlls form the "walls" function. for example: print walls()[UP]
 DOWN = 1
 LEFT = 2
@@ -16,7 +17,6 @@ RIGHT = 3
 LEFT_BALL = 0 #this is for getting the balls from the 'balls' list
 RIGHT_BALL = 1 # ^ same explanation
 CHOOSE_ANGLE = -500 # this is the state a ball enter when it is removed from the game
-NUMBER_IMAGES = []
 #setters for the constants
 def set_screen_size(width,height):
     screen_size[0] = width
@@ -50,12 +50,12 @@ def create_players(get_as_dict = False):
     return players
 def create_left_ball(player_left,angle):
     rect = [player_left['x'] , player_left['y'] , player_left['w'] , player_left['h']]
-    x = player_left['x']+player_left['w']+20
+    x = player_left['x']+player_left['w']+20 # I have to push it back or else it gets stuck inside the player
     y = round(surface_percent(50,from_start_of_surface=True,rect=rect)[1])
     rang =math.radians(angle)
     move_x = 10*math.cos(rang)
     move_y = 10*math.sin(rang)
-    return {'x':x, 'move_x' : move_x , 'y':y, 'move_y' : move_y , 'r':10, 'speed' : 15, 'ang': angle , 'side' : 'LEFT' , 'player': player_left , 'color' : random_color(),}
+    return {'x':x, 'move_x' : move_x , 'y':y, 'move_y' : move_y , 'r':10, 'speed' : 15, 'ang': angle , 'side' : 'LEFT' , 'player': player_left , 'color' : player_left['color']}
 def create_right_ball(player_right,angle):
     rect = [player_right['x'], player_right['y'], player_right['w'], player_right['h']]
     x = player_right['x']-20
@@ -63,7 +63,13 @@ def create_right_ball(player_right,angle):
     rang = math.radians(angle)
     move_x = -10*math.cos(rang)
     move_y = -10*math.sin(rang)
-    return {'x': x, 'move_x' : move_x , 'y': y, 'move_y' : move_y , 'r': 10,  'speed' : -15, 'ang': angle ,'side' : 'RIGHT', 'player' : player_right , 'color': random_color()}
+    return {'x': x, 'move_x' : move_x , 'y': y, 'move_y' : move_y , 'r': 10,  'speed' : -15, 'ang': angle ,'side' : 'RIGHT', 'player' : player_right , 'color': player_right['color']}
+def create_blocks(blocks,balls,ball):
+    player = ball['player']
+    blocks.append({'x': ball['x'], 'y': ball['y'], 'w': player['w'], 'h': player['h'], 'color': random_color()})  # creates block
+    ball['x'] = CHOOSE_ANGLE  # the ball enters the same state as in the "dictate_angle" function.
+    ball['ang'] = 0  # resets angle
+    balls.remove(ball)  # removes the ball from the "balls" list
 def create_angle_line(obj,ang,line_len=70 , line_direction = 'RIGHT'):
     '''obj is the object the line is going from.
        ang is the angle of the line
@@ -82,6 +88,12 @@ def walls():
     left = {'x': -50,'y': 0,'w': 50 ,'h':screen_size[1],'color': colors['background']}
     right = {'x': screen_size[0] , 'y': 0, 'w': 50 , 'h': screen_size[1], 'color': colors['background']}
     return [up,down,left,right]
+def load_numbers():
+    '''simply loads the number images'''
+    number_images = []
+    for number in ['zero','one','two','three','four','five','six','seven','eight','nine']:
+        number_images.append(pygame.image.load('numbers/'+number+'.jpg'))
+    return number_images
 def set_color(name_of_color,color):
     colors[name_of_color] = color
 def random_color():
